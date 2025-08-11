@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"name": ".bolt",
+			"path": "../.bolt"
+		},
+		{
+			"name": "ChronoStudy",
+			"path": "../../../ChronoStudy"
+		},
+		{
+			"name": "src",
+			"path": "."
+		}
+	],
+	"settings": {}
+}
