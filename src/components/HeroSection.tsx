@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Play, ArrowRight } from 'lucide-react';
 
 export const HeroSection: React.FC = () => {
+  const navigate = useNavigate();
   const [typedText, setTypedText] = useState('');
   const fullText = 'Frontend Development';
   
@@ -47,7 +49,10 @@ export const HeroSection: React.FC = () => {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
-            <button className="bg-blue-500 hover:bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-all duration-200 transform hover:scale-105 flex items-center space-x-2 shadow-lg">
+            <button 
+              onClick={() => navigate('/study-plan')}
+              className="bg-blue-500 hover:bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-all duration-200 transform hover:scale-105 flex items-center space-x-2 shadow-lg"
+            >
               <span>Get Started Free</span>
               <ArrowRight className="h-5 w-5" />
             </button>

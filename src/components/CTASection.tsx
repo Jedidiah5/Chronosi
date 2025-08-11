@@ -1,7 +1,10 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Sparkles } from 'lucide-react';
 
 export const CTASection: React.FC = () => {
+  const navigate = useNavigate();
+
   return (
     <section className="py-24 bg-gradient-to-r from-blue-500 to-blue-600">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -19,7 +22,10 @@ export const CTASection: React.FC = () => {
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <button className="bg-white hover:bg-gray-50 text-blue-600 px-10 py-4 rounded-lg font-bold text-lg transition-all duration-200 transform hover:scale-105 flex items-center space-x-2 shadow-lg">
+          <button 
+            onClick={() => navigate('/study-plan')}
+            className="bg-white hover:bg-gray-50 text-blue-600 px-10 py-4 rounded-lg font-bold text-lg transition-all duration-200 transform hover:scale-105 flex items-center space-x-2 shadow-lg"
+          >
             <span>Try Chronosi for Free</span>
             <ArrowRight className="h-5 w-5" />
           </button>
