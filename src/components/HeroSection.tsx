@@ -34,8 +34,68 @@ export const HeroSection: React.FC = () => {
   }, []);
 
   return (
-    <section className="pt-20 pb-32 bg-gradient-to-b from-gray-50 to-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="relative pt-20 pb-32 bg-gradient-to-b from-gray-50 to-white overflow-hidden">
+      {/* Animated Background Lines */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* Top to Bottom Lines */}
+        <div className="absolute top-0 left-1/4 w-0.5 h-40 bg-gradient-to-b from-transparent via-blue-400/40 to-transparent animate-pulse"></div>
+        <div className="absolute top-0 left-3/4 w-0.5 h-32 bg-gradient-to-b from-transparent via-indigo-400/50 to-transparent animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute top-0 left-1/2 w-0.5 h-28 bg-gradient-to-b from-transparent via-blue-500/35 to-transparent animate-pulse" style={{ animationDelay: '0.3s' }}></div>
+        <div className="absolute top-0 left-1/6 w-0.5 h-36 bg-gradient-to-b from-transparent via-indigo-500/45 to-transparent animate-pulse" style={{ animationDelay: '1.8s' }}></div>
+        <div className="absolute top-0 left-5/6 w-0.5 h-24 bg-gradient-to-b from-transparent via-blue-400/30 to-transparent animate-pulse" style={{ animationDelay: '2.2s' }}></div>
+        
+        {/* Bottom to Top Lines */}
+        <div className="absolute bottom-0 right-1/3 w-0.5 h-36 bg-gradient-to-t from-transparent via-blue-500/35 to-transparent animate-pulse" style={{ animationDelay: '2s' }}></div>
+        <div className="absolute bottom-0 right-2/3 w-0.5 h-44 bg-gradient-to-t from-transparent via-indigo-500/45 to-transparent animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+        <div className="absolute bottom-0 right-1/2 w-0.5 h-32 bg-gradient-to-t from-transparent via-blue-400/40 to-transparent animate-pulse" style={{ animationDelay: '1.3s' }}></div>
+        <div className="absolute bottom-0 right-1/6 w-0.5 h-28 bg-gradient-to-t from-transparent via-indigo-400/35 to-transparent animate-pulse" style={{ animationDelay: '0.8s' }}></div>
+        <div className="absolute bottom-0 right-5/6 w-0.5 h-40 bg-gradient-to-t from-transparent via-blue-500/30 to-transparent animate-pulse" style={{ animationDelay: '2.5s' }}></div>
+        
+        {/* Left to Right Lines */}
+        <div className="absolute top-1/4 left-0 h-0.5 w-40 bg-gradient-to-r from-transparent via-blue-400/40 to-transparent animate-pulse" style={{ animationDelay: '1.5s' }}></div>
+        <div className="absolute top-3/4 left-0 h-0.5 w-32 bg-gradient-to-r from-transparent via-indigo-400/50 to-transparent animate-pulse" style={{ animationDelay: '0.8s' }}></div>
+        <div className="absolute top-1/2 left-0 h-0.5 w-36 bg-gradient-to-r from-transparent via-blue-500/35 to-transparent animate-pulse" style={{ animationDelay: '2.1s' }}></div>
+        <div className="absolute top-1/6 left-0 h-0.5 w-28 bg-gradient-to-r from-transparent via-indigo-500/45 to-transparent animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+        <div className="absolute top-5/6 left-0 h-0.5 w-44 bg-gradient-to-r from-transparent via-blue-400/30 to-transparent animate-pulse" style={{ animationDelay: '1.9s' }}></div>
+        
+        {/* Right to Left Lines */}
+        <div className="absolute top-1/3 right-0 h-0.5 w-36 bg-gradient-to-l from-transparent via-blue-500/35 to-transparent animate-pulse" style={{ animationDelay: '2.5s' }}></div>
+        <div className="absolute top-2/3 right-0 h-0.5 w-44 bg-gradient-to-l from-transparent via-indigo-500/45 to-transparent animate-pulse" style={{ animationDelay: '1.2s' }}></div>
+        <div className="absolute top-1/2 right-0 h-0.5 w-32 bg-gradient-to-l from-transparent via-blue-400/40 to-transparent animate-pulse" style={{ animationDelay: '0.7s' }}></div>
+        <div className="absolute top-1/6 right-0 h-0.5 w-40 bg-gradient-to-l from-transparent via-indigo-400/35 to-transparent animate-pulse" style={{ animationDelay: '2.3s' }}></div>
+        <div className="absolute top-5/6 right-0 h-0.5 w-28 bg-gradient-to-l from-transparent via-blue-500/30 to-transparent animate-pulse" style={{ animationDelay: '1.6s' }}></div>
+        
+        {/* Diagonal Lines */}
+        <div className="absolute top-0 left-0 w-40 h-0.5 bg-gradient-to-r from-transparent via-blue-400/30 to-transparent transform rotate-45 origin-left animate-pulse" style={{ animationDelay: '0.3s' }}></div>
+        <div className="absolute top-0 right-0 w-32 h-0.5 bg-gradient-to-l from-transparent via-indigo-400/40 to-transparent transform -rotate-45 origin-right animate-pulse" style={{ animationDelay: '1.8s' }}></div>
+        <div className="absolute bottom-0 left-0 w-36 h-0.5 bg-gradient-to-r from-transparent via-blue-500/35 to-transparent transform -rotate-45 origin-left animate-pulse" style={{ animationDelay: '2.2s' }}></div>
+        <div className="absolute bottom-0 right-0 w-44 h-0.5 bg-gradient-to-l from-transparent via-indigo-500/25 to-transparent transform rotate-45 origin-right animate-pulse" style={{ animationDelay: '0.7s' }}></div>
+        
+        {/* Additional Side Lines - Left */}
+        <div className="absolute top-1/8 left-0 h-0.5 w-24 bg-gradient-to-r from-transparent via-blue-400/50 to-transparent animate-pulse" style={{ animationDelay: '0.9s' }}></div>
+        <div className="absolute top-3/8 left-0 h-0.5 w-36 bg-gradient-to-r from-transparent via-indigo-400/40 to-transparent animate-pulse" style={{ animationDelay: '2.4s' }}></div>
+        <div className="absolute top-7/8 left-0 h-0.5 w-32 bg-gradient-to-r from-transparent via-blue-500/45 to-transparent animate-pulse" style={{ animationDelay: '1.1s' }}></div>
+        
+        {/* Additional Side Lines - Right */}
+        <div className="absolute top-1/8 right-0 h-0.5 w-28 bg-gradient-to-l from-transparent via-indigo-400/50 to-transparent animate-pulse" style={{ animationDelay: '1.4s' }}></div>
+        <div className="absolute top-3/8 right-0 h-0.5 w-40 bg-gradient-to-l from-transparent via-blue-400/35 to-transparent animate-pulse" style={{ animationDelay: '0.6s' }}></div>
+        <div className="absolute top-7/8 right-0 h-0.5 w-36 bg-gradient-to-l from-transparent via-indigo-500/40 to-transparent animate-pulse" style={{ animationDelay: '2.7s' }}></div>
+        
+        {/* Floating Dots */}
+        <div className="absolute top-1/4 left-1/4 w-2.5 h-2.5 bg-blue-400/50 rounded-full animate-ping" style={{ animationDelay: '0.5s' }}></div>
+        <div className="absolute top-3/4 right-1/4 w-2 h-2 bg-indigo-400/60 rounded-full animate-ping" style={{ animationDelay: '1.5s' }}></div>
+        <div className="absolute top-1/2 left-1/2 w-1.5 h-1.5 bg-blue-500/70 rounded-full animate-ping" style={{ animationDelay: '2.8s' }}></div>
+        <div className="absolute top-1/6 right-1/6 w-2 h-2 bg-indigo-500/45 rounded-full animate-ping" style={{ animationDelay: '0.2s' }}></div>
+        <div className="absolute top-5/6 left-1/6 w-1.5 h-1.5 bg-blue-400/55 rounded-full animate-ping" style={{ animationDelay: '1.9s' }}></div>
+        
+        {/* Moving Lines */}
+        <div className="absolute top-1/6 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-blue-400/25 to-transparent animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+        <div className="absolute top-5/6 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-indigo-400/30 to-transparent animate-pulse" style={{ animationDelay: '1.7s' }}></div>
+        <div className="absolute top-0 left-1/6 w-0.5 h-full bg-gradient-to-b from-transparent via-blue-500/20 to-transparent animate-pulse" style={{ animationDelay: '2.3s' }}></div>
+        <div className="absolute top-0 right-1/6 w-0.5 h-full bg-gradient-to-b from-transparent via-indigo-500/25 to-transparent animate-pulse" style={{ animationDelay: '0.9s' }}></div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="text-center max-w-4xl mx-auto">
           <h1 className="text-5xl md:text-6xl font-extrabold text-gray-900 mb-6 leading-tight tracking-tight">
             Study Smarter.
