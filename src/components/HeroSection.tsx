@@ -37,10 +37,13 @@ export const HeroSection: React.FC = () => {
     <section className="pt-20 pb-32 bg-gradient-to-b from-gray-50 to-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-4xl mx-auto">
-          <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-            Study Smarter. Learn Faster.{' '}
+          <h1 className="text-5xl md:text-6xl font-extrabold text-gray-900 mb-6 leading-tight tracking-tight">
+            Study Smarter.
+            <br />
+            Learn Faster.
+            <br />
             <span className="bg-gradient-to-r from-blue-500 to-blue-600 bg-clip-text text-transparent">
-              Let AI Plan It For You.
+              Let AI Plan It For You
             </span>
           </h1>
           
