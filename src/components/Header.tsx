@@ -30,17 +30,11 @@ export const Header: React.FC = () => {
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
           <div className="flex items-center space-x-4">
-            <div className="relative">
-              <div className="bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 p-3 rounded-xl shadow-lg shadow-blue-500/25">
-                <Brain className="h-7 w-7 text-white" />
-              </div>
-              <div className="absolute -inset-1 bg-gradient-to-r from-blue-400 to-indigo-500 rounded-xl blur opacity-20"></div>
-            </div>
             <div className="flex flex-col">
-              <span className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-                Chronosi
+              <span className="text-2xl font-bold text-blue-600">
+                chronosi
               </span>
-              <span className="text-xs text-gray-500 font-medium">Study Planner</span>
+              <span className="text-xs text-gray-500 font-medium">AI Powered</span>
             </div>
           </div>
           
