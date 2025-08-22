@@ -9,8 +9,7 @@ import dotenv from 'dotenv';
 import { errorHandler } from './middleware/errorHandler.js';
 import { notFoundHandler } from './middleware/notFoundHandler.js';
 import { logger } from './utils/logger.js';
-import { connectDatabase } from './database/connection.js';
-import { connectRedis } from './database/redis.js';
+import { initSQLite } from './database/sqlite-connection.js';
 
 // Import routes
 import authRoutes from './routes/auth.js';
@@ -94,13 +93,9 @@ app.use(errorHandler);
 // Start server
 async function startServer() {
   try {
-    // Connect to database
-    await connectDatabase();
-    logger.info('✅ Database connected successfully');
-
-    // Connect to Redis
-    await connectRedis();
-    logger.info('✅ Redis connected successfully');
+    // Initialize SQLite database
+    initSQLite();
+    logger.info('✅ SQLite database initialized successfully');
 
     // Start listening
     app.listen(PORT, HOST, () => {

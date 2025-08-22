@@ -5,8 +5,7 @@ import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import rateLimit from 'express-rate-limit';
 
-import { query } from '../database/connection.js';
-import { setCache, deleteCache } from '../database/redis.js';
+import { query } from '../database/sqlite-connection.js';
 import { logger } from '../utils/logger.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { 
@@ -344,8 +343,7 @@ router.post('/logout', authenticateToken, async (req, res, next) => {
       );
     }
 
-    // Clear user cache
-    await deleteCache(`user:${userId}`);
+    // User logged out successfully
 
     logger.info('User logged out successfully', {
       userId,

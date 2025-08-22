@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { UnauthorizedError, ForbiddenError } from './errorHandler.js';
 import { logger } from '../utils/logger.js';
-import { query } from '../database/connection.js';
+import { query } from '../database/sqlite-connection.js';
 
 // Extend Express Request interface to include user
 declare global {
