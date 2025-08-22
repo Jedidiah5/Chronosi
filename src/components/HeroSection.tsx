@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Play, ArrowRight } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 export const HeroSection: React.FC = () => {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [typedText, setTypedText] = useState('');
   const fullText = 'Frontend Development';
   
@@ -111,16 +113,36 @@ export const HeroSection: React.FC = () => {
             Chronosi helps you master anything with an AI-generated learning timeline — complete with YouTube videos, articles, and course recommendations.
           </p>
 
-          <div className="flex justify-center mb-16">
-            <button 
-              onClick={() => navigate('/study-plan')}
-              className="group relative bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 hover:from-blue-700 hover:via-blue-600 hover:to-indigo-700 text-white px-10 py-5 rounded-2xl font-bold text-lg transition-all duration-300 transform hover:scale-105 hover:shadow-2xl flex items-center space-x-3 shadow-xl"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-indigo-400/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              <span className="relative z-10">Get Started Free</span>
-              <ArrowRight className="h-5 w-5 relative z-10 transition-transform duration-300 group-hover:translate-x-1" />
-              <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            </button>
+          <div className="flex justify-center mb-16 space-x-4">
+            {isAuthenticated ? (
+              <button 
+                onClick={() => navigate('/study-plan')}
+                className="group relative bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 hover:from-blue-700 hover:via-blue-600 hover:to-indigo-700 text-white px-10 py-5 rounded-2xl font-bold text-lg transition-all duration-300 transform hover:scale-105 hover:shadow-2xl flex items-center space-x-3 shadow-xl"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-indigo-400/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <span className="relative z-10">Go to Study Plan</span>
+                <ArrowRight className="h-5 w-5 relative z-10 transition-transform duration-300 group-hover:translate-x-1" />
+                <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              </button>
+            ) : (
+              <>
+                <Link
+                  to="/signup"
+                  className="group relative bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 hover:from-blue-700 hover:via-blue-600 hover:to-indigo-700 text-white px-10 py-5 rounded-2xl font-bold text-lg transition-all duration-300 transform hover:scale-105 hover:shadow-2xl flex items-center space-x-3 shadow-xl"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-indigo-400/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  <span className="relative z-10">Get Started Free</span>
+                  <ArrowRight className="h-5 w-5 relative z-10 transition-transform duration-300 group-hover:translate-x-1" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                </Link>
+                <Link
+                  to="/login"
+                  className="group relative bg-white border-2 border-gray-300 hover:border-gray-400 text-gray-700 hover:text-gray-900 px-10 py-5 rounded-2xl font-bold text-lg transition-all duration-300 transform hover:scale-105 hover:shadow-xl flex items-center space-x-3 shadow-lg"
+                >
+                  <span className="relative z-10">Sign In</span>
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Hero Animation/Mockup */}
