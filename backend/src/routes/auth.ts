@@ -265,23 +265,93 @@ router.post('/refresh', async (req, res, next) => {
       throw InternalServerError('Server configuration error');
     }
 
-    // Verify refresh token
-    const decoded = jwt.verify(refreshToken, jwtRefreshSecret) as any;
+    // Verify refresh token JWT signature and expiration
+    let decoded: any;
+    try {
+      decoded = jwt.verify(refreshToken, jwtRefreshSecret);
+    } catch (jwtError) {
+      const errorMessage = jwtError instanceof Error ? jwtError.message : 'Unknown JWT error';
+      logger.warn('Invalid refresh token JWT', {
+        error: errorMessage,
+        ip: req.ip,
+      });
+      
+      // Provide more specific error messages for different JWT errors
+      if (errorMessage.includes('expired')) {
+        throw UnauthorizedError('Refresh token has expired');
+      } else if (errorMessage.includes('invalid signature')) {
+        throw UnauthorizedError('Invalid refresh token signature');
+      } else {
+        throw UnauthorizedError('Invalid refresh token');
+      }
+    }
+
     if (!decoded || !decoded.userId || decoded.type !== 'refresh') {
+      logger.warn('Malformed refresh token payload', {
+        decoded,
+        ip: req.ip,
+      });
       throw UnauthorizedError('Invalid refresh token');
     }
 
-    // Check if refresh token exists in database
-    const saltRounds = parseInt(process.env.BCRYPT_ROUNDS || '12');
-    const refreshTokenHash = await bcrypt.hash(refreshToken, saltRounds);
-    
+    // Get all active sessions for this user to compare against stored hashes
     const sessionResult = await query(
-      'SELECT id, user_id FROM user_sessions WHERE refresh_token_hash = $1 AND is_active = true AND expires_at > CURRENT_TIMESTAMP',
-      [refreshTokenHash]
+      'SELECT id, user_id, refresh_token_hash FROM user_sessions WHERE user_id = $1 AND is_active = true AND expires_at > CURRENT_TIMESTAMP',
+      [decoded.userId]
     );
 
     if (sessionResult.rows.length === 0) {
+      logger.warn('No active sessions found for user', {
+        userId: decoded.userId,
+        ip: req.ip,
+      });
       throw UnauthorizedError('Invalid or expired refresh token');
+    }
+
+    // Find matching session by comparing refresh token against stored hashes
+    let matchingSession = null;
+    for (const session of sessionResult.rows) {
+      try {
+        const isValidToken = await bcrypt.compare(refreshToken, session.refresh_token_hash);
+        if (isValidToken) {
+          matchingSession = session;
+          break;
+        }
+      } catch (bcryptError) {
+        logger.error('Error comparing refresh token hash', {
+          error: bcryptError instanceof Error ? bcryptError.message : 'Unknown bcrypt error',
+          sessionId: session.id,
+          userId: decoded.userId,
+        });
+        // Continue checking other sessions
+      }
+    }
+
+    if (!matchingSession) {
+      logger.warn('Refresh token does not match any stored session', {
+        userId: decoded.userId,
+        ip: req.ip,
+      });
+      throw UnauthorizedError('Invalid refresh token');
+    }
+
+    // Verify user still exists and is active
+    const userResult = await query(
+      'SELECT id, is_active FROM users WHERE id = $1',
+      [decoded.userId]
+    );
+
+    if (userResult.rows.length === 0 || !userResult.rows[0].is_active) {
+      logger.warn('User not found or inactive during token refresh', {
+        userId: decoded.userId,
+        ip: req.ip,
+      });
+      // Invalidate the session
+      await query(
+        'UPDATE user_sessions SET is_active = false WHERE id = $1',
+        [matchingSession.id]
+      );
+      throw UnauthorizedError('User account is not active');
     }
 
     // Generate new access token
@@ -298,6 +368,7 @@ router.post('/refresh', async (req, res, next) => {
 
     logger.info('Access token refreshed successfully', {
       userId: decoded.userId,
+      sessionId: matchingSession.id,
       ip: req.ip,
     });
 
@@ -309,6 +380,14 @@ router.post('/refresh', async (req, res, next) => {
       },
     });
   } catch (error) {
+    // Log the error for debugging but don't expose internal details
+    if (error instanceof Error && !error.message.includes('Invalid') && !error.message.includes('required')) {
+      logger.error('Unexpected error during token refresh', {
+        error: error.message,
+        stack: error.stack,
+        ip: req.ip,
+      });
+    }
     next(error);
   }
 });
@@ -319,21 +398,82 @@ router.post('/logout', authenticateToken, async (req, res, next) => {
     const { refreshToken } = req.body;
     const userId = req.user!.id;
 
-    if (refreshToken) {
-      // Invalidate refresh token
-      const saltRounds = parseInt(process.env.BCRYPT_ROUNDS || '12');
-      const refreshTokenHash = await bcrypt.hash(refreshToken, saltRounds);
-      
-      await query(
-        'UPDATE user_sessions SET is_active = false WHERE user_id = $1 AND refresh_token_hash = $2',
-        [userId, refreshTokenHash]
-      );
-    }
+    let sessionInvalidated = false;
 
-    // User logged out successfully
+    if (refreshToken) {
+      try {
+        // Get all active sessions for this user
+        const sessionResult = await query(
+          'SELECT id, refresh_token_hash FROM user_sessions WHERE user_id = $1 AND is_active = true',
+          [userId]
+        );
+
+        // Find and invalidate the matching session
+        for (const session of sessionResult.rows) {
+          try {
+            const isValidToken = await bcrypt.compare(refreshToken, session.refresh_token_hash);
+            if (isValidToken) {
+              await query(
+                'UPDATE user_sessions SET is_active = false WHERE id = $1',
+                [session.id]
+              );
+              sessionInvalidated = true;
+              logger.info('Refresh token session invalidated during logout', {
+                userId,
+                sessionId: session.id,
+                ip: req.ip,
+              });
+              break;
+            }
+          } catch (bcryptError) {
+            logger.error('Error comparing refresh token during logout', {
+              error: bcryptError instanceof Error ? bcryptError.message : 'Unknown bcrypt error',
+              sessionId: session.id,
+              userId,
+            });
+            // Continue checking other sessions
+          }
+        }
+
+        if (!sessionInvalidated) {
+          logger.warn('Refresh token not found during logout - may already be invalid', {
+            userId,
+            ip: req.ip,
+          });
+        }
+      } catch (error) {
+        logger.error('Error invalidating refresh token during logout', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          userId,
+          ip: req.ip,
+        });
+        // Don't fail logout if token invalidation fails
+      }
+    } else {
+      // If no refresh token provided, invalidate all sessions for this user
+      try {
+        const result = await query(
+          'UPDATE user_sessions SET is_active = false WHERE user_id = $1 AND is_active = true',
+          [userId]
+        );
+        logger.info('All user sessions invalidated during logout', {
+          userId,
+          sessionsInvalidated: result.rowCount || 0,
+          ip: req.ip,
+        });
+      } catch (error) {
+        logger.error('Error invalidating all sessions during logout', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          userId,
+          ip: req.ip,
+        });
+        // Don't fail logout if session cleanup fails
+      }
+    }
 
     logger.info('User logged out successfully', {
       userId,
+      sessionInvalidated,
       ip: req.ip,
     });
 
@@ -342,7 +482,18 @@ router.post('/logout', authenticateToken, async (req, res, next) => {
       message: 'Logout successful',
     });
   } catch (error) {
-    next(error);
+    // Even if there are errors, we should still consider logout successful
+    // to prevent users from being stuck in a logged-in state
+    logger.error('Error during logout process', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      userId: req.user?.id,
+      ip: req.ip,
+    });
+
+    res.json({
+      success: true,
+      message: 'Logout successful',
+    });
   }
 });
 
