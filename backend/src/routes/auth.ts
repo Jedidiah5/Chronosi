@@ -41,19 +41,8 @@ const validateRegistration = [
     .matches(/^[a-zA-Z0-9_]+$/)
     .withMessage('Username must be 3-30 characters and contain only letters, numbers, and underscores'),
   body('password')
-    .isLength({ min: 8 })
-    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
-    .withMessage('Password must be at least 8 characters and contain uppercase, lowercase, number, and special character'),
-  body('firstName')
-    .optional()
-    .isLength({ min: 1, max: 100 })
-    .trim()
-    .withMessage('First name must be 1-100 characters'),
-  body('lastName')
-    .optional()
-    .isLength({ min: 1, max: 100 })
-    .trim()
-    .withMessage('Last name must be 1-100 characters'),
+    .isLength({ min: 6 })
+    .withMessage('Password must be at least 6 characters'),
 ];
 
 const validateLogin = [
@@ -99,7 +88,7 @@ router.post('/register', authLimiter, validateRegistration, async (req, res, nex
       throw ValidationError(errors.array()[0].msg);
     }
 
-    const { email, username, password, firstName, lastName } = req.body;
+    const { email, username, password } = req.body;
 
     // Check if user already exists
     const existingUser = await query(
@@ -117,10 +106,10 @@ router.post('/register', authLimiter, validateRegistration, async (req, res, nex
 
     // Create user
     const result = await query(
-      `INSERT INTO users (email, username, password_hash, first_name, last_name, is_verified)
-       VALUES ($1, $2, $3, $4, $5, false)
-       RETURNING id, email, username, first_name, last_name, created_at`,
-      [email, username, passwordHash, firstName, lastName]
+      `INSERT INTO users (email, username, password_hash, is_verified)
+       VALUES ($1, $2, $3, false)
+       RETURNING id, email, username, created_at`,
+      [email, username, passwordHash]
     );
 
     const user = result.rows[0];
@@ -163,8 +152,6 @@ router.post('/register', authLimiter, validateRegistration, async (req, res, nex
           id: user.id,
           email: user.email,
           username: user.username,
-          firstName: user.first_name,
-          lastName: user.last_name,
           createdAt: user.created_at,
         },
         tokens: {

@@ -22,7 +22,7 @@ Chronosi is an intelligent learning platform that generates personalized study p
 ### Backend
 - Node.js with Express
 - TypeScript
-- PostgreSQL database
+- PostgreSQL database 
 - Redis for caching
 - JWT authentication
 - bcrypt for password hashing

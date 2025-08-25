@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Eye, EyeOff, Mail, Lock, User, Brain, CheckCircle, XCircle } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
+import { Logo } from './Logo';
 
 export const SignupPage: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -9,8 +10,6 @@ export const SignupPage: React.FC = () => {
     username: '',
     password: '',
     confirmPassword: '',
-    firstName: '',
-    lastName: '',
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -28,32 +27,15 @@ export const SignupPage: React.FC = () => {
     }));
   };
 
-  const validatePassword = (password: string) => {
-    const minLength = password.length >= 8;
-    const hasUpperCase = /[A-Z]/.test(password);
-    const hasLowerCase = /[a-z]/.test(password);
-    const hasNumber = /\d/.test(password);
-    const hasSpecialChar = /[@$!%*?&]/.test(password);
-    
-    return {
-      minLength,
-      hasUpperCase,
-      hasLowerCase,
-      hasNumber,
-      hasSpecialChar,
-      isValid: minLength && hasUpperCase && hasLowerCase && hasNumber && hasSpecialChar
-    };
-  };
-
-  const passwordValidation = validatePassword(formData.password);
+  const isPasswordValid = formData.password.length >= 6;
   const passwordsMatch = formData.password === formData.confirmPassword;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (!passwordValidation.isValid) {
-      setError('Please ensure your password meets all requirements.');
+    if (!isPasswordValid) {
+      setError('Password must be at least 6 characters.');
       return;
     }
 
@@ -69,8 +51,6 @@ export const SignupPage: React.FC = () => {
         email: formData.email,
         username: formData.username,
         password: formData.password,
-        firstName: formData.firstName || undefined,
-        lastName: formData.lastName || undefined,
       });
       navigate('/study-plan');
     } catch (err) {
@@ -86,15 +66,7 @@ export const SignupPage: React.FC = () => {
         {/* Header */}
         <div className="text-center">
           <div className="flex justify-center mb-6">
-            <div className="flex items-center space-x-3">
-              <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl shadow-lg">
-                <Brain className="h-8 w-8 text-white" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-3xl font-bold text-gray-900">chronosi</span>
-                <span className="text-sm text-gray-500 font-medium">AI Powered</span>
-              </div>
-            </div>
+            <Logo size="large" />
           </div>
           <h2 className="text-3xl font-bold text-gray-900 mb-2">Create account</h2>
           <p className="text-gray-600">Join chronosi and start your learning journey</p>
@@ -109,49 +81,7 @@ export const SignupPage: React.FC = () => {
               </div>
             )}
 
-            {/* Name Fields */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
-                  First name
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <User className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    id="firstName"
-                    name="firstName"
-                    type="text"
-                    autoComplete="given-name"
-                    value={formData.firstName}
-                    onChange={handleInputChange}
-                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                    placeholder="First name"
-                  />
-                </div>
-              </div>
-              <div>
-                <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">
-                  Last name
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <User className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    id="lastName"
-                    name="lastName"
-                    type="text"
-                    autoComplete="family-name"
-                    value={formData.lastName}
-                    onChange={handleInputChange}
-                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                    placeholder="Last name"
-                  />
-                </div>
-              </div>
-            </div>
+
 
             {/* Username Field */}
             <div>
@@ -231,31 +161,7 @@ export const SignupPage: React.FC = () => {
                   )}
                 </button>
               </div>
-              
-              {/* Password Requirements */}
-              <div className="mt-3 space-y-2">
-                <p className="text-xs font-medium text-gray-600">Password requirements:</p>
-                <div className="space-y-1">
-                  {[
-                    { key: 'minLength', label: 'At least 8 characters', valid: passwordValidation.minLength },
-                    { key: 'hasUpperCase', label: 'One uppercase letter', valid: passwordValidation.hasUpperCase },
-                    { key: 'hasLowerCase', label: 'One lowercase letter', valid: passwordValidation.hasLowerCase },
-                    { key: 'hasNumber', label: 'One number', valid: passwordValidation.hasNumber },
-                    { key: 'hasSpecialChar', label: 'One special character', valid: passwordValidation.hasSpecialChar },
-                  ].map(({ key, label, valid }) => (
-                    <div key={key} className="flex items-center space-x-2">
-                      {valid ? (
-                        <CheckCircle className="h-3 w-3 text-green-500" />
-                      ) : (
-                        <XCircle className="h-3 w-3 text-gray-300" />
-                      )}
-                      <span className={`text-xs ${valid ? 'text-green-600' : 'text-gray-400'}`}>
-                        {label}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+
             </div>
 
             {/* Confirm Password Field */}
@@ -302,7 +208,7 @@ export const SignupPage: React.FC = () => {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={isLoading || !passwordValidation.isValid || !passwordsMatch}
+              disabled={isLoading || !isPasswordValid || !passwordsMatch}
               className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-xl text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl"
             >
               {isLoading ? (

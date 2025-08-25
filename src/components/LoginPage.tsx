@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Eye, EyeOff, Mail, Lock, Brain } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
+import { Logo } from './Logo';
 
 export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -34,15 +35,7 @@ export const LoginPage: React.FC = () => {
         {/* Header */}
         <div className="text-center">
           <div className="flex justify-center mb-6">
-            <div className="flex items-center space-x-3">
-              <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl shadow-lg">
-                <Brain className="h-8 w-8 text-white" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-3xl font-bold text-gray-900">chronosi</span>
-                <span className="text-sm text-gray-500 font-medium">AI Powered</span>
-              </div>
-            </div>
+            <Logo size="large" />
           </div>
           <h2 className="text-3xl font-bold text-gray-900 mb-2">Welcome back</h2>
           <p className="text-gray-600">Sign in to your account to continue</p>

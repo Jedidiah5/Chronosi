@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Brain, Menu, X, LogOut, Settings, User, LogIn } from 'lucide-react';
+import { Menu, X, LogOut, Settings, User, LogIn } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { Logo } from './Logo';
 
 export const Header: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -32,12 +33,7 @@ export const Header: React.FC = () => {
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
           <div className="flex items-center space-x-4">
-            <div className="flex flex-col">
-              <span className="text-2xl font-bold text-blue-600">
-                chronosi
-              </span>
-              <span className="text-xs text-gray-500 font-medium">AI Powered</span>
-            </div>
+            <Logo size="medium" />
           </div>
           
           {/* Desktop Actions */}
