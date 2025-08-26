@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Header } from './Header';
-import { Footer } from './Footer';
 import { StudyForm } from './StudyForm';
 import { StudyPlan } from './StudyPlan';
 import type { StudyPlanData } from '../types/studyPlan';
@@ -40,8 +39,6 @@ export const StudyPlanPage: React.FC = () => {
           </div>
         )}
       </main>
-      
-      <Footer />
     </div>
   );
 };

@@ -99,7 +99,7 @@ export const HeroSection: React.FC = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="text-center max-w-4xl mx-auto">
-          <h1 className="text-5xl md:text-6xl font-extrabold text-gray-900 mb-6 leading-tight tracking-tight">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 mb-6 leading-tight tracking-tight px-2">
             Study Smarter.
             <br />
             Learn Faster.
@@ -109,15 +109,15 @@ export const HeroSection: React.FC = () => {
             </span>
           </h1>
           
-          <p className="text-xl text-gray-600 mb-12 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-lg sm:text-xl text-gray-600 mb-12 max-w-3xl mx-auto leading-relaxed px-4">
             Chronosi helps you master anything with an AI-generated learning timeline — complete with YouTube videos, articles, and course recommendations.
           </p>
 
-          <div className="flex justify-center mb-16 space-x-4">
+          <div className="flex flex-col sm:flex-row justify-center items-center mb-16 space-y-4 sm:space-y-0 sm:space-x-4">
             {isAuthenticated ? (
               <button 
                 onClick={() => navigate('/study-plan')}
-                className="group relative bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 hover:from-blue-700 hover:via-blue-600 hover:to-indigo-700 text-white px-10 py-5 rounded-2xl font-bold text-lg transition-all duration-300 transform hover:scale-105 hover:shadow-2xl flex items-center space-x-3 shadow-xl"
+                className="group relative bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 hover:from-blue-700 hover:via-blue-600 hover:to-indigo-700 text-white px-6 sm:px-10 py-4 sm:py-5 rounded-2xl font-bold text-base sm:text-lg transition-all duration-300 transform hover:scale-105 hover:shadow-2xl flex items-center space-x-3 shadow-xl w-full sm:w-auto justify-center"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-indigo-400/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 <span className="relative z-10">Go to Study Plan</span>
@@ -128,7 +128,7 @@ export const HeroSection: React.FC = () => {
               <>
                 <Link
                   to="/signup"
-                  className="group relative bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 hover:from-blue-700 hover:via-blue-600 hover:to-indigo-700 text-white px-10 py-5 rounded-2xl font-bold text-lg transition-all duration-300 transform hover:scale-105 hover:shadow-2xl flex items-center space-x-3 shadow-xl"
+                  className="group relative bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 hover:from-blue-700 hover:via-blue-600 hover:to-indigo-700 text-white px-6 sm:px-10 py-4 sm:py-5 rounded-2xl font-bold text-base sm:text-lg transition-all duration-300 transform hover:scale-105 hover:shadow-2xl flex items-center space-x-3 shadow-xl w-full sm:w-auto justify-center"
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-indigo-400/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   <span className="relative z-10">Get Started Free</span>
@@ -137,7 +137,7 @@ export const HeroSection: React.FC = () => {
                 </Link>
                 <Link
                   to="/login"
-                  className="group relative bg-white border-2 border-gray-300 hover:border-gray-400 text-gray-700 hover:text-gray-900 px-10 py-5 rounded-2xl font-bold text-lg transition-all duration-300 transform hover:scale-105 hover:shadow-xl flex items-center space-x-3 shadow-lg"
+                  className="group relative bg-white border-2 border-gray-300 hover:border-gray-400 text-gray-700 hover:text-gray-900 px-6 sm:px-10 py-4 sm:py-5 rounded-2xl font-bold text-base sm:text-lg transition-all duration-300 transform hover:scale-105 hover:shadow-xl flex items-center space-x-3 shadow-lg w-full sm:w-auto justify-center"
                 >
                   <span className="relative z-10">Sign In</span>
                 </Link>
@@ -146,7 +146,7 @@ export const HeroSection: React.FC = () => {
           </div>
 
           {/* Hero Animation/Mockup */}
-          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-4xl mx-auto border border-gray-100">
+          <div className="bg-white rounded-2xl shadow-2xl p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto border border-gray-100 mx-4">
             <div className="mb-6">
               <div className="flex items-center space-x-3 mb-4">
                 <div className="w-3 h-3 bg-red-400 rounded-full"></div>

@@ -69,20 +69,21 @@ export const Header: React.FC = () => {
                 </div>
               </>
             ) : (
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-2 sm:space-x-3">
                 <Link
                   to="/login"
-                  className="group relative p-3 text-gray-600 hover:text-gray-900 hover:bg-gray-100/80 rounded-xl transition-all duration-200 hover:shadow-md"
+                  className="group relative p-2 sm:p-3 text-gray-600 hover:text-gray-900 hover:bg-gray-100/80 rounded-xl transition-all duration-200 hover:shadow-md"
                   aria-label="Login"
                 >
-                  <LogIn className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
+                  <LogIn className="h-4 w-4 sm:h-5 sm:w-5 transition-transform duration-200 group-hover:scale-110" />
                   <div className="absolute inset-0 bg-gradient-to-r from-blue-500/0 to-indigo-500/0 rounded-xl transition-all duration-200 group-hover:from-blue-500/5 group-hover:to-indigo-500/5"></div>
                 </Link>
                 <Link
                   to="/signup"
-                  className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-medium rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg"
+                  className="px-3 sm:px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-xs sm:text-sm font-medium rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg"
                 >
-                  Sign Up
+                  <span className="hidden sm:inline">Sign Up</span>
+                  <span className="sm:hidden">Sign</span>
                 </Link>
               </div>
             )}
