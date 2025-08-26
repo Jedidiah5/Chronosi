@@ -3,12 +3,13 @@ import { getAuth } from 'firebase/auth';
 
 // Replace these values with your actual Firebase config from the Firebase Console
 const firebaseConfig = {
-  apiKey: "your-api-key-here",
-  authDomain: "your-project-id.firebaseapp.com",
-  projectId: "your-project-id",
-  storageBucket: "your-project-id.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "your-app-id-here"
+  apiKey: "AIzaSyCa3CSI4B0tmUvWARj1bPtahnBJ5LwX2Mc",
+  authDomain: "chronosi.firebaseapp.com",
+  projectId: "chronosi",
+  storageBucket: "chronosi.firebasestorage.app",
+  messagingSenderId: "266408259350",
+  appId: "1:266408259350:web:086b5fba6778216a976a37",
+  measurementId: "G-BL5BY68P1K"
 };
 
 // Initialize Firebase

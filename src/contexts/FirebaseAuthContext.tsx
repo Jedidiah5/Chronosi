@@ -4,8 +4,8 @@ import {
   createUserWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
-  User as FirebaseUser,
-  AuthError as FirebaseAuthError,
+  type User as FirebaseUser,
+  type AuthError as FirebaseAuthError,
   sendPasswordResetEmail,
   updateProfile
 } from 'firebase/auth';
