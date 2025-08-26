@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '../utils/logger.js';
+import { reportError } from '../utils/errorReporter.js';
 
 export interface AppError extends Error {
   statusCode?: number;
@@ -22,16 +23,24 @@ export class CustomError extends Error implements AppError {
   }
 }
 
-export const errorHandler = (
+export const errorHandler = async (
   error: AppError,
   req: Request,
   res: Response,
   next: NextFunction
-): void => {
+): Promise<void> => {
   let { statusCode = 500, message, code } = error;
 
-  // Log the error
+  // Report error for comprehensive logging and monitoring
+  const errorId = await reportError(error, req, {
+    statusCode,
+    code,
+    isOperational: error.isOperational,
+  });
+
+  // Log the error with error ID for tracking
   logger.error('Error occurred:', {
+    errorId,
     error: {
       message: error.message,
       stack: error.stack,
@@ -82,6 +91,7 @@ export const errorHandler = (
     error: {
       message,
       code,
+      errorId, // Include error ID for tracking
       ...(process.env.NODE_ENV === 'development' && { stack: error.stack }),
     },
     timestamp: new Date().toISOString(),

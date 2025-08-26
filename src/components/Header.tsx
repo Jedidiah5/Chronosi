@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Menu, X, LogOut, Settings, User, LogIn } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useFirebaseAuth } from '../contexts/FirebaseAuthContext';
 import { Logo } from './Logo';
 
 export const Header: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, user, logout } = useFirebaseAuth();
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -17,9 +17,15 @@ export const Header: React.FC = () => {
     setIsMobileMenuOpen(false);
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate('/');
+  const handleLogout = async () => {
+    try {
+      await logout();
+      // Navigation is now handled by the logout function in AuthContext
+    } catch (error) {
+      console.error('Logout failed:', error);
+      // Even if logout fails, navigate to home page for better UX
+      navigate('/');
+    }
   };
 
   const handleSettings = () => {

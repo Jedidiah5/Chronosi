@@ -1,5 +1,18 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
+// Simple logger for frontend (since we don't have backend logger available)
+const logger = {
+  info: (message: string, data?: any) => {
+    console.log(`[AUTH] ${message}`, data || '');
+  },
+  warn: (message: string, data?: any) => {
+    console.warn(`[AUTH] ${message}`, data || '');
+  },
+  error: (message: string, data?: any) => {
+    console.error(`[AUTH] ${message}`, data || '');
+  }
+};
+
 interface User {
   id: string;
   email: string;
@@ -40,11 +53,13 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: AuthError | null;
-  login: (email: string, password: string) => Promise<void>;
-  signup: (userData: SignupData) => Promise<void>;
-  logout: () => void;
+  login: (email: string, password: string, redirectTo?: string) => Promise<void>;
+  signup: (userData: SignupData, redirectTo?: string) => Promise<void>;
+  logout: () => Promise<void>;
   refreshToken: () => Promise<void>;
   clearError: () => void;
+  getAndClearRedirect: () => string | null;
+  authenticatedFetch: (url: string, options?: RequestInit) => Promise<Response>;
 }
 
 interface SignupData {
@@ -98,14 +113,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   // Helper function to determine error type from response
-  const determineErrorType = (response: Response, error: any): AuthErrorType => {
+  const determineErrorType = (response: Response | null, error: any): AuthErrorType => {
+    // Check for network connectivity issues first
     if (!navigator.onLine) {
+      return AuthErrorType.NETWORK_ERROR;
+    }
+
+    // Check for fetch/network errors
+    if (error?.name === 'TypeError' || 
+        error?.message?.includes('fetch') || 
+        error?.message?.includes('NetworkError') ||
+        error?.message?.includes('Failed to fetch') ||
+        error?.code === 'NETWORK_ERROR') {
       return AuthErrorType.NETWORK_ERROR;
     }
 
     if (response) {
       switch (response.status) {
         case 401:
+          // Check if it's a token-related error
+          if (error?.message?.includes('token') || error?.message?.includes('expired')) {
+            return AuthErrorType.TOKEN_EXPIRED;
+          }
           return AuthErrorType.INVALID_CREDENTIALS;
         case 403:
           return AuthErrorType.ACCOUNT_DEACTIVATED;
@@ -125,11 +154,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     }
 
-    if (error?.name === 'TypeError' || error?.message?.includes('fetch')) {
-      return AuthErrorType.NETWORK_ERROR;
-    }
-
     return AuthErrorType.UNKNOWN_ERROR;
+  };
+
+  // Helper function to get user-friendly error messages
+  const getUserFriendlyMessage = (errorType: AuthErrorType, originalMessage: string): string => {
+    switch (errorType) {
+      case AuthErrorType.NETWORK_ERROR:
+        return 'Unable to connect to the server. Please check your internet connection and try again.';
+      case AuthErrorType.INVALID_CREDENTIALS:
+        return 'Invalid email or password. Please check your credentials and try again.';
+      case AuthErrorType.ACCOUNT_NOT_FOUND:
+        return 'No account found with this email address.';
+      case AuthErrorType.ACCOUNT_DEACTIVATED:
+        return 'Your account has been deactivated. Please contact support for assistance.';
+      case AuthErrorType.VALIDATION_ERROR:
+        return originalMessage || 'Please check your input and try again.';
+      case AuthErrorType.TOKEN_EXPIRED:
+        return 'Your session has expired. Please log in again.';
+      case AuthErrorType.TOKEN_INVALID:
+        return 'Authentication failed. Please log in again.';
+      case AuthErrorType.TOKEN_REFRESH_FAILED:
+        return 'Session expired. Please log in again.';
+      case AuthErrorType.RATE_LIMITED:
+        return 'Too many requests. Please wait a moment before trying again.';
+      case AuthErrorType.SERVER_ERROR:
+        return 'Server is temporarily unavailable. Please try again in a few moments.';
+      default:
+        return originalMessage || 'An unexpected error occurred. Please try again.';
+    }
   };
 
   // Helper function to create AuthError from response
@@ -157,13 +210,38 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
 
     const errorType = determineErrorType(response, error);
+    const userFriendlyMessage = getUserFriendlyMessage(errorType, message);
     
     return {
       type: errorType,
-      message,
+      message: userFriendlyMessage,
       details,
       retryAfter
     };
+  };
+
+  // Helper function to determine if error should be retried
+  const shouldRetryError = (error: any): boolean => {
+    const authError = error.authError;
+    if (!authError) return true; // Retry unknown errors
+    
+    // Don't retry these error types - they are permanent failures
+    const nonRetryableErrors = [
+      AuthErrorType.INVALID_CREDENTIALS,
+      AuthErrorType.ACCOUNT_NOT_FOUND,
+      AuthErrorType.ACCOUNT_DEACTIVATED,
+      AuthErrorType.VALIDATION_ERROR,
+      AuthErrorType.TOKEN_INVALID,
+    ];
+    
+    // Only retry network errors, server errors, and rate limiting
+    const retryableErrors = [
+      AuthErrorType.NETWORK_ERROR,
+      AuthErrorType.SERVER_ERROR,
+      AuthErrorType.RATE_LIMITED,
+    ];
+    
+    return retryableErrors.includes(authError.type);
   };
 
   // Exponential backoff retry logic
@@ -180,12 +258,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         lastError = error;
         
         // Don't retry on certain error types
-        if (error instanceof Error && error.message.includes('INVALID_CREDENTIALS')) {
+        if (!shouldRetryError(error)) {
+          logger.info(`Not retrying error type: ${error.authError?.type || 'unknown'}`);
           throw error;
         }
         
         // If this was the last attempt, throw the error
         if (attempt === config.maxRetries) {
+          logger.warn(`Max retries (${config.maxRetries}) reached for operation`);
           throw error;
         }
         
@@ -198,6 +278,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // Add jitter to prevent thundering herd
         const jitteredDelay = delay + Math.random() * 1000;
         
+        logger.info(`Retrying operation in ${Math.round(jitteredDelay)}ms (attempt ${attempt + 1}/${config.maxRetries})`);
         await new Promise(resolve => setTimeout(resolve, jitteredDelay));
       }
     }
@@ -205,24 +286,53 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     throw lastError;
   };
 
-  // Enhanced fetch with error handling
+  // Enhanced fetch with error handling and timeout
   const authFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    });
+    // Add timeout to prevent hanging requests
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    
+    try {
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
+        signal: controller.signal,
+      });
 
-    if (!response.ok) {
-      const authError = await createAuthError(response, null);
-      const error = new Error(authError.message);
-      (error as any).authError = authError;
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const authError = await createAuthError(response, null);
+        const error = new Error(authError.message);
+        (error as any).authError = authError;
+        throw error;
+      }
+
+      return response;
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      
+      // Handle abort/timeout errors
+      if (error.name === 'AbortError') {
+        const timeoutError = new Error('Request timed out');
+        (timeoutError as any).authError = {
+          type: AuthErrorType.NETWORK_ERROR,
+          message: 'Request timed out. Please check your connection and try again.'
+        };
+        throw timeoutError;
+      }
+      
+      // Handle other fetch errors
+      if (!error.authError) {
+        const authError = await createAuthError(null, error);
+        (error as any).authError = authError;
+      }
+      
       throw error;
     }
-
-    return response;
   };
 
   // Check if user is already logged in on app start
@@ -241,20 +351,39 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             const data = await response.json();
             setUser(data.data.user);
             setError(null);
+            logger.info('User authentication verified successfully');
           });
         } catch (error: any) {
-          console.error('Error checking auth status:', error);
+          logger.error('Error checking auth status:', error);
           
-          // Try to refresh token if the access token is invalid
+          // Try to refresh token if the access token is invalid/expired
           if (error.authError?.type === AuthErrorType.TOKEN_EXPIRED || 
-              error.authError?.type === AuthErrorType.TOKEN_INVALID) {
+              error.authError?.type === AuthErrorType.TOKEN_INVALID ||
+              (error.authError?.type === AuthErrorType.INVALID_CREDENTIALS && localStorage.getItem('refreshToken'))) {
             try {
+              logger.info('Attempting token refresh during auth status check');
               await refreshTokenInternal();
-            } catch (refreshError) {
+              
+              // After successful refresh, try to get user info again
+              const newAccessToken = localStorage.getItem('accessToken');
+              if (newAccessToken) {
+                const response = await authFetch(`${API_BASE_URL}/auth/me`, {
+                  headers: {
+                    'Authorization': `Bearer ${newAccessToken}`,
+                  },
+                });
+                
+                const data = await response.json();
+                setUser(data.data.user);
+                setError(null);
+                logger.info('User authentication verified after token refresh');
+              }
+            } catch (refreshError: any) {
+              logger.error('Token refresh failed during auth status check:', refreshError);
               // If refresh fails, clear tokens and set error
               localStorage.removeItem('accessToken');
               localStorage.removeItem('refreshToken');
-              setError(error.authError || {
+              setError(refreshError.authError || {
                 type: AuthErrorType.TOKEN_REFRESH_FAILED,
                 message: 'Session expired. Please log in again.'
               });
@@ -276,9 +405,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     checkAuthStatus();
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, redirectTo?: string) => {
     setIsLoading(true);
     setError(null);
+    
+    logger.info('Attempting user login');
     
     try {
       await retryWithBackoff(async () => {
@@ -294,11 +425,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         localStorage.setItem('accessToken', tokens.accessToken);
         localStorage.setItem('refreshToken', tokens.refreshToken);
 
+        // Store redirect destination if provided
+        if (redirectTo) {
+          localStorage.setItem('postLoginRedirect', redirectTo);
+        }
+
         setUser(userData);
         setError(null);
+        logger.info('User login successful');
       });
     } catch (error: any) {
-      console.error('Login error:', error);
+      logger.error('Login failed:', error);
       const authError = error.authError || await createAuthError(null, error);
       setError(authError);
       throw error;
@@ -307,9 +444,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const signup = async (userData: SignupData) => {
+  const signup = async (userData: SignupData, redirectTo?: string) => {
     setIsLoading(true);
     setError(null);
+    
+    logger.info('Attempting user registration');
     
     try {
       await retryWithBackoff(async () => {
@@ -325,11 +464,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         localStorage.setItem('accessToken', tokens.accessToken);
         localStorage.setItem('refreshToken', tokens.refreshToken);
 
+        // Store redirect destination if provided
+        if (redirectTo) {
+          localStorage.setItem('postLoginRedirect', redirectTo);
+        }
+
         setUser(newUser);
         setError(null);
+        logger.info('User registration successful');
       });
     } catch (error: any) {
-      console.error('Signup error:', error);
+      logger.error('Registration failed:', error);
       const authError = error.authError || await createAuthError(null, error);
       setError(authError);
       throw error;
@@ -339,32 +484,55 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const logout = async () => {
+    setIsLoading(true);
+    
     const accessToken = localStorage.getItem('accessToken');
     const refreshToken = localStorage.getItem('refreshToken');
 
     // Call logout endpoint if we have tokens
     if (accessToken && refreshToken) {
       try {
-        await retryWithBackoff(async () => {
-          await authFetch(`${API_BASE_URL}/auth/logout`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-            },
-            body: JSON.stringify({ refreshToken }),
-          });
+        // Don't use retry logic for logout - it should be a single attempt
+        // since we're clearing tokens regardless of success/failure
+        await authFetch(`${API_BASE_URL}/auth/logout`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({ refreshToken }),
         });
-      } catch (error) {
-        // Log error but don't prevent logout
+        
+        logger.info('Backend session invalidated successfully');
+      } catch (error: any) {
+        // Log error but don't prevent logout - backend session invalidation is best effort
         console.error('Logout endpoint error:', error);
+        
+        // Set a non-blocking error to inform user that backend logout may have failed
+        // but don't prevent the local logout from completing
+        const authError = error.authError || await createAuthError(null, error);
+        console.warn('Backend logout failed, but local logout will continue:', authError.message);
       }
     }
 
     // Always clear local state and tokens regardless of API call success
+    // This ensures user is logged out locally even if backend call fails
     setUser(null);
     setError(null);
+    setIsLoading(false);
+    
+    // Clear all authentication-related data from localStorage
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
+    localStorage.removeItem('postLoginRedirect');
+    
+    // Navigate to home page after logout
+    // Use window.location to ensure clean navigation and avoid any routing issues
+    try {
+      window.location.href = '/';
+    } catch (e) {
+      // Fallback for test environments where window.location might not work
+      console.log('Redirecting to home page after logout');
+    }
   };
 
   // Internal refresh token function with retry logic
@@ -374,10 +542,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const error = new Error('No refresh token available');
       (error as any).authError = {
         type: AuthErrorType.TOKEN_INVALID,
-        message: 'No refresh token available'
+        message: 'Session expired. Please log in again.'
       };
       throw error;
     }
+
+    logger.info('Attempting to refresh access token');
 
     try {
       await retryWithBackoff(async () => {
@@ -388,9 +558,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         const data = await response.json();
         localStorage.setItem('accessToken', data.data.accessToken);
+        logger.info('Access token refreshed successfully');
+        
+        // If we have a new refresh token, update it too
+        if (data.data.refreshToken) {
+          localStorage.setItem('refreshToken', data.data.refreshToken);
+          logger.info('Refresh token updated');
+        }
+      }, {
+        // Use more aggressive retry for token refresh since it's critical
+        maxRetries: 2,
+        baseDelay: 500,
+        maxDelay: 2000
       });
     } catch (error: any) {
-      console.error('Token refresh error:', error);
+      logger.error('Token refresh failed:', error);
       
       // Clear tokens and user state on refresh failure
       localStorage.removeItem('accessToken');
@@ -399,7 +581,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       const authError = error.authError || {
         type: AuthErrorType.TOKEN_REFRESH_FAILED,
-        message: 'Failed to refresh authentication token'
+        message: 'Session expired. Please log in again.'
       };
       setError(authError);
       
@@ -414,6 +596,72 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     await refreshTokenInternal();
   };
 
+  // Helper function to get and clear stored redirect destination
+  const getAndClearRedirect = (): string | null => {
+    const redirectTo = localStorage.getItem('postLoginRedirect');
+    if (redirectTo) {
+      localStorage.removeItem('postLoginRedirect');
+      return redirectTo;
+    }
+    return null;
+  };
+
+  // Authenticated fetch with automatic token refresh
+  const authenticatedFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
+    const accessToken = localStorage.getItem('accessToken');
+    
+    if (!accessToken) {
+      const error = new Error('No access token available');
+      (error as any).authError = {
+        type: AuthErrorType.TOKEN_INVALID,
+        message: 'Please log in to continue'
+      };
+      throw error;
+    }
+
+    try {
+      // First attempt with current token
+      return await authFetch(url, {
+        ...options,
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          ...options.headers,
+        },
+      });
+    } catch (error: any) {
+      // If token is expired/invalid, try to refresh and retry
+      if (error.authError?.type === AuthErrorType.TOKEN_EXPIRED || 
+          error.authError?.type === AuthErrorType.TOKEN_INVALID ||
+          (error.authError?.type === AuthErrorType.INVALID_CREDENTIALS && localStorage.getItem('refreshToken'))) {
+        
+        logger.info('Access token invalid, attempting refresh for authenticated request');
+        
+        try {
+          await refreshTokenInternal();
+          
+          // Retry the request with new token
+          const newAccessToken = localStorage.getItem('accessToken');
+          if (newAccessToken) {
+            return await authFetch(url, {
+              ...options,
+              headers: {
+                'Authorization': `Bearer ${newAccessToken}`,
+                ...options.headers,
+              },
+            });
+          }
+        } catch (refreshError) {
+          logger.error('Token refresh failed during authenticated request:', refreshError);
+          // If refresh fails, throw the original error
+          throw error;
+        }
+      }
+      
+      // For other errors, just throw them
+      throw error;
+    }
+  };
+
   const value: AuthContextType = {
     user,
     isAuthenticated,
@@ -424,6 +672,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     refreshToken,
     clearError,
+    getAndClearRedirect,
+    authenticatedFetch,
   };
 
   return (

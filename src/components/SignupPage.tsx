@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { useAuth, AuthErrorType } from '../contexts/AuthContext';
+import { useFirebaseAuth, AuthErrorType } from '../contexts/FirebaseAuthContext';
 import { Eye, EyeOff, Mail, Lock, User, AlertCircle, CheckCircle, Wifi, WifiOff } from 'lucide-react';
 import { Logo } from './Logo';
 
@@ -33,9 +33,28 @@ export const SignupPage: React.FC = () => {
     confirmPassword: false,
   });
   
-  const { signup, error: authError, isLoading, clearError } = useAuth();
+  const { signup, error: authError, isLoading, clearError, getAndClearRedirect } = useFirebaseAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Helper function to determine the redirect destination
+  const getRedirectDestination = (): string => {
+    // Priority order:
+    // 1. Stored redirect from localStorage (from previous session or AuthContext)
+    // 2. Location state from ProtectedRoute
+    // 3. Default to study plan
+    const storedRedirect = getAndClearRedirect();
+    if (storedRedirect && storedRedirect !== '/login' && storedRedirect !== '/signup') {
+      return storedRedirect;
+    }
+    
+    const from = (location.state as any)?.from?.pathname;
+    if (from && from !== '/login' && from !== '/signup') {
+      return from;
+    }
+    
+    return '/study-plan';
+  };
 
   // Real-time validation functions
   const validateEmail = (email: string): FieldValidation => {
@@ -212,16 +231,17 @@ export const SignupPage: React.FC = () => {
       return;
     }
 
+    const redirectDestination = getRedirectDestination();
+
     try {
       await signup({
         email: formData.email,
         username: formData.username,
         password: formData.password,
-      });
+      }, redirectDestination);
       
-      // Get redirect path from location state or default to study-plan
-      const from = (location.state as any)?.from?.pathname || '/study-plan';
-      navigate(from, { replace: true });
+      // Redirect to the intended destination
+      navigate(redirectDestination, { replace: true });
     } catch (err) {
       // Error is handled by AuthContext and will be displayed via authError
       console.error('Signup failed:', err);
@@ -536,6 +556,7 @@ export const SignupPage: React.FC = () => {
           <div className="mt-6 text-center">
             <Link
               to="/login"
+              state={location.state}
               className="font-medium text-blue-600 hover:text-blue-500 transition-colors duration-200"
             >
               Sign in to your account

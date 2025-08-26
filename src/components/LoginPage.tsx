@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { useAuth, AuthErrorType } from '../contexts/AuthContext';
+import { useFirebaseAuth, AuthErrorType } from '../contexts/FirebaseAuthContext';
 import { Eye, EyeOff, Mail, Lock, AlertCircle, Wifi, RefreshCw } from 'lucide-react';
 import { Logo } from './Logo';
 
@@ -11,12 +11,32 @@ export const LoginPage: React.FC = () => {
   const [isRetrying, setIsRetrying] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   
-  const { login, isLoading, error, clearError } = useAuth();
+  const { login, isLoading, error, clearError, getAndClearRedirect } = useFirebaseAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Get the intended destination from location state
-  const from = (location.state as any)?.from?.pathname || '/study-plan';
+  // Get the intended destination and redirect reason from location state
+  const locationState = location.state as any;
+  const from = locationState?.from?.pathname || '/study-plan';
+  const redirectReason = locationState?.reason;
+
+  // Helper function to determine the redirect destination
+  const getRedirectDestination = (): string => {
+    // Priority order:
+    // 1. Stored redirect from localStorage (from previous session or AuthContext)
+    // 2. Location state from ProtectedRoute
+    // 3. Default to study plan
+    const storedRedirect = getAndClearRedirect();
+    if (storedRedirect && storedRedirect !== '/login' && storedRedirect !== '/signup') {
+      return storedRedirect;
+    }
+    
+    if (from && from !== '/login' && from !== '/signup') {
+      return from;
+    }
+    
+    return '/study-plan';
+  };
 
   // Helper function to get user-friendly error messages
   const getErrorMessage = (error: any) => {
@@ -70,10 +90,12 @@ export const LoginPage: React.FC = () => {
     e.preventDefault();
     clearError();
 
+    const redirectDestination = getRedirectDestination();
+
     try {
-      await login(email, password);
-      // Redirect to the intended destination or default to study plan
-      navigate(from, { replace: true });
+      await login(email, password, redirectDestination);
+      // Redirect to the intended destination
+      navigate(redirectDestination, { replace: true });
     } catch (err) {
       // Error is already handled by AuthContext
       console.error('Login failed:', err);
@@ -87,9 +109,11 @@ export const LoginPage: React.FC = () => {
     setIsRetrying(true);
     setRetryCount(prev => prev + 1);
     
+    const redirectDestination = getRedirectDestination();
+    
     try {
-      await login(email, password);
-      navigate(from, { replace: true });
+      await login(email, password, redirectDestination);
+      navigate(redirectDestination, { replace: true });
       setRetryCount(0);
     } catch (err) {
       console.error('Retry failed:', err);
@@ -108,15 +132,34 @@ export const LoginPage: React.FC = () => {
           </div>
           <h2 className="text-3xl font-bold text-gray-900 mb-2">Welcome back</h2>
           <p className="text-gray-600">
-            {from !== '/study-plan' ? 
-              'Please sign in to access the requested page' : 
-              'Sign in to your account to continue'
+            {redirectReason === 'session_expired' ? 
+              'Your session has expired. Please sign in again to continue.' :
+              from !== '/study-plan' ? 
+                `Please sign in to access ${from === '/' ? 'the home page' : 'the requested page'}` : 
+                'Sign in to your account to continue'
             }
           </p>
         </div>
 
         {/* Login Form */}
         <div className="bg-white rounded-3xl shadow-xl border border-gray-200/50 p-8">
+          {/* Session expiration notice */}
+          {redirectReason === 'session_expired' && !error && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
+              <div className="flex items-start space-x-3">
+                <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm text-amber-700 font-medium">
+                    Session Expired
+                  </p>
+                  <p className="text-xs text-amber-600 mt-1">
+                    For your security, you've been signed out. Please sign in again to continue.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-xl p-4">
@@ -247,6 +290,7 @@ export const LoginPage: React.FC = () => {
           <div className="mt-6 text-center">
             <Link
               to="/signup"
+              state={location.state}
               className="font-medium text-blue-600 hover:text-blue-500 transition-colors duration-200"
             >
               Create a new account

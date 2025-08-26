@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
+import { FirebaseAuthProvider } from './contexts/FirebaseAuthContext';
 import { Header } from './components/Header';
 import { HeroSection } from './components/HeroSection';
 import { HowItWorksSection } from './components/HowItWorksSection';
@@ -29,7 +29,7 @@ function LandingPage() {
 
 function App() {
   return (
-    <AuthProvider>
+    <FirebaseAuthProvider>
       <Router>
         <Routes>
           <Route path="/" element={<LandingPage />} />
@@ -45,7 +45,7 @@ function App() {
           />
         </Routes>
       </Router>
-    </AuthProvider>
+    </FirebaseAuthProvider>
   );
 }
 

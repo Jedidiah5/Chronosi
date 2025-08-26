@@ -9,6 +9,14 @@ import { query } from '../database/sqlite-connection.js';
 import { logger } from '../utils/logger.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { 
+  logAuthEvent, 
+  logFailedLogin, 
+  logSuccessfulAuth, 
+  logTokenEvent,
+  logRateLimitEvent 
+} from '../utils/authLogger.js';
+import { logAuthActivity } from '../utils/userActivityLogger.js';
+import { 
   BadRequestError, 
   UnauthorizedError, 
   ConflictError, 
@@ -28,6 +36,9 @@ const authLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  onLimitReached: (req) => {
+    logRateLimitEvent(req, 5, 15 * 60 * 1000);
+  },
 });
 
 // Validation middleware
@@ -137,6 +148,18 @@ router.post('/register', authLimiter, validateRegistration, async (req, res, nex
       ]
     );
 
+    // Log successful registration
+    logSuccessfulAuth(req, user.id, 'register', {
+      email: user.email,
+      username: user.username,
+    });
+    
+    // Log user activity
+    await logAuthActivity(req, 'register', true, {
+      email: user.email,
+      username: user.username,
+    });
+
     logger.info('User registered successfully', {
       userId: user.id,
       email: user.email,
@@ -183,6 +206,8 @@ router.post('/login', authLimiter, validateLogin, async (req, res, next) => {
     );
 
     if (result.rows.length === 0) {
+      logFailedLogin(req, email, 'User not found');
+      await logAuthActivity(req, 'login', false, { email, reason: 'User not found' });
       throw UnauthorizedError('Invalid email or password');
     }
 
@@ -190,12 +215,16 @@ router.post('/login', authLimiter, validateLogin, async (req, res, next) => {
 
     // Check if user is active
     if (!user.is_active) {
+      logFailedLogin(req, email, 'Account deactivated');
+      await logAuthActivity(req, 'login', false, { email, reason: 'Account deactivated' });
       throw UnauthorizedError('Account is deactivated');
     }
 
     // Verify password
     const isValidPassword = await bcrypt.compare(password, user.password_hash);
     if (!isValidPassword) {
+      logFailedLogin(req, email, 'Invalid password');
+      await logAuthActivity(req, 'login', false, { email, reason: 'Invalid password' });
       throw UnauthorizedError('Invalid email or password');
     }
 
@@ -222,6 +251,18 @@ router.post('/login', authLimiter, validateLogin, async (req, res, next) => {
         req.get('User-Agent'),
       ]
     );
+
+    // Log successful login
+    logSuccessfulAuth(req, user.id, 'login', {
+      email: user.email,
+      username: user.username,
+    });
+    
+    // Log user activity
+    await logAuthActivity(req, 'login', true, {
+      email: user.email,
+      username: user.username,
+    });
 
     logger.info('User logged in successfully', {
       userId: user.id,
@@ -271,6 +312,11 @@ router.post('/refresh', async (req, res, next) => {
       decoded = jwt.verify(refreshToken, jwtRefreshSecret);
     } catch (jwtError) {
       const errorMessage = jwtError instanceof Error ? jwtError.message : 'Unknown JWT error';
+      
+      // Log token failure
+      logTokenEvent(req, 'invalid_token', { error: errorMessage });
+      await logAuthActivity(req, 'token_refresh', false, { reason: errorMessage });
+      
       logger.warn('Invalid refresh token JWT', {
         error: errorMessage,
         ip: req.ip,
@@ -278,6 +324,7 @@ router.post('/refresh', async (req, res, next) => {
       
       // Provide more specific error messages for different JWT errors
       if (errorMessage.includes('expired')) {
+        logTokenEvent(req, 'expired_token');
         throw UnauthorizedError('Refresh token has expired');
       } else if (errorMessage.includes('invalid signature')) {
         throw UnauthorizedError('Invalid refresh token signature');
@@ -328,6 +375,9 @@ router.post('/refresh', async (req, res, next) => {
     }
 
     if (!matchingSession) {
+      logTokenEvent(req, 'invalid_token', { userId: decoded.userId, reason: 'Token not found in sessions' });
+      await logAuthActivity(req, 'token_refresh', false, { userId: decoded.userId, reason: 'Token not found in sessions' });
+      
       logger.warn('Refresh token does not match any stored session', {
         userId: decoded.userId,
         ip: req.ip,

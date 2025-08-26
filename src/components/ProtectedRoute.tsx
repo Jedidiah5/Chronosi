@@ -1,17 +1,17 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useFirebaseAuth, AuthErrorType } from '../contexts/FirebaseAuthContext';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, error } = useFirebaseAuth();
   const location = useLocation();
 
+  // Show loading spinner while checking authentication
   if (isLoading) {
-    // Show loading spinner while checking authentication
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center">
         <div className="text-center">
@@ -22,9 +22,14 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     );
   }
 
+  // If user is not authenticated, redirect to login
   if (!isAuthenticated) {
-    // Redirect to login page with the intended destination
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    const redirectState = {
+      from: location,
+      reason: 'authentication_required'
+    };
+
+    return <Navigate to="/login" state={redirectState} replace />;
   }
 
   return <>{children}</>;
