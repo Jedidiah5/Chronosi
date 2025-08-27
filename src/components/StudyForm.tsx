@@ -65,7 +65,7 @@ export const StudyForm: React.FC<StudyFormProps> = ({ onGenerate, isLoading }) =
           <button
             type="submit"
             disabled={!topic.trim() || isLoading}
-            className="w-full bg-gradient-to-r from-[#2bc0e4] to-[#eaecc6] text-white py-4 px-6 rounded-xl text-lg font-semibold hover:from-[#2bc0e4]/90 hover:to-[#eaecc6]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center space-x-2"
+            className="w-full bg-blue-600 text-white py-4 px-6 rounded-xl text-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center space-x-2"
           >
             {isLoading ? (
               <>
